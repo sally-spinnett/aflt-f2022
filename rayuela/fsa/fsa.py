@@ -313,10 +313,10 @@ class FSA:
 		# Homework 1: Question 4
 		if not isinstance(fsa, FSA):
 			print("Must input another FSA!")
-			return null
+			return None
 		if self.R != fsa.R:
 			print("Two semirings must be the same!")
-			return null
+			return None
 		else:
 			ufsa = FSA(self.R)
 			ufsa.add_state(PairState(0, 0))
@@ -346,10 +346,10 @@ class FSA:
 		# Homework 1: Question 4
 		if not isinstance(fsa, FSA):
 			print("Must input another FSA!")
-			return null
+			return None
 		if self.R != fsa.R:
 			print("Two semirings must be the same!")
-			return null
+			return None
 		else:
 			cfsa = FSA(self.R)
 			for i, T in self.δ.items():
