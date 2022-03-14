@@ -1,4 +1,5 @@
 from __future__ import annotations
+from calendar import c
 import copy
 import numpy as np
 from frozendict import frozendict
@@ -6,6 +7,8 @@ from itertools import product
 
 from collections import Counter
 from collections import defaultdict as dd
+
+from sqlalchemy import null
 
 from rayuela.base.semiring import Boolean
 from rayuela.base.misc import epsilon_filter
@@ -215,57 +218,175 @@ class FSA:
 
 	@property
 	def deterministic(self) -> bool:
-
 		# Homework 1: Question 2
-		raise NotImplementedError
+		if ε in self.Sigma:
+			return False
+		for i in self.Q:
+			for a, T in self.δ[i].items():
+				x = 0
+				for j, w in T.items():
+					if w != self.R.zero and x == 0:
+						x == 1
+					if w != self.R.zero and x == 1:
+						return False
+		return True
 
 	@property
 	def pushed(self) -> bool:
-
 		# Homework 1: Question 2
-		raise NotImplementedError
+		for i in self.Q:
+			weight = self.R.zero
+			for a, T in self.δ[i].items():
+				for j, w in T.items():
+					weight = weight + w + self.ρ[i]
+			if weight != self.R.one:
+				return False
+		return True
 
 	def reverse(self) -> FSA:
 		""" computes the reverse of the FSA """
 
 		# Homework 1: Question 3
-		raise NotImplementedError
+		rfsa = FSA(self.R)
+		for q, w in self.λ.items():
+			if w != self.R.zero:
+				rfsa.add_F(q, w)
+		for q, w in self.ρ.items():
+			if w != self.R.zero: 
+				rfsa.add_I(q, w)
+		for i, T in self.δ.items():
+			for a, U in T.items():
+				for j, w in U.items():
+					rfsa.add_arc(j, a, i, w)
+		return rfsa
+
+
+	def accessible_dfs(self, accessed, q):
+		if q not in accessed:
+			accessed.add(q)
+			for _, T in self.δ[q].items():
+				for j, w in T.items():
+					if w != self.R.zero:
+						self.accessible_dfs(accessed, j)
 
 	def accessible(self) -> set:
 		""" computes the set of acessible states """
 
 		# Homework 1: Question 3
-		raise NotImplementedError
+		accessed = set([])
+		for q, _ in list(self.I):
+			self.accessible_dfs(accessed, q)
+		return accessed
 
 	def coaccessible(self) -> set:
 		""" computes the set of co-acessible states """
 
 		# Homework 1: Question 3
-		raise NotImplementedError
-
+		coaccessed = set([])
+		self = self.reverse()
+		for q, _ in list(self.I):
+			self.accessible_dfs(coaccessed, q)
+		return coaccessed
+		
 	def trim(self) -> FSA:
 		""" keeps only those states that are both accessible and co-accessible """
 
 		# Homework 1: Question 3
-		raise NotImplementedError
+		accessed = self.accessible()
+		coaccessed = self.coaccessible()
+		both = accessed.intersection(coaccessed)
+		useless = accessed.union(coaccessed) - both
+
+		tfsa = FSA(self.R)
+		tfsa = self.copy()
+
+		for q in useless:
+			tfsa.Q.remove(q)
+			for a, j, w in list(tfsa.arcs(q)):
+				tfsa.δ[q][a].pop(j)
+			for a, j, w in list(tfsa.reverse().arcs(q)):
+				tfsa.δ[j][a].pop(q)
+		return tfsa
+
 
 	def union(self, fsa) -> FSA:
 		""" construct the union of the two FSAs """
 
 		# Homework 1: Question 4
-		raise NotImplementedError
+		if not isinstance(fsa, FSA):
+			print("Must input another FSA!")
+			return null
+		if self.R != fsa.R:
+			print("Two semirings must be the same!")
+			return null
+		else:
+			ufsa = FSA(self.R)
+			ufsa.add_state(PairState(0, 0))
+			ufsa.add_I(PairState(0, 0), self.R.one)
+			for i, T in self.δ.items():
+				for a, U in T.items():
+					for j, w in U.items():
+						ufsa.add_arc(PairState(1, i), a, PairState(1, j), w)
+			for i, T in fsa.δ.items():
+				for a, U in T.items():
+					for j, w in U.items():
+						ufsa.add_arc(PairState(2, i), a, PairState(2, j), w)
+			for q, w in self.λ.items():
+				ufsa.add_arc(PairState(0, 0), ε, PairState(1, q), self.R.one)
+			for q, w in fsa.λ.items():
+				ufsa.add_arc(PairState(0, 0), ε, PairState(2, q), self.R.one)
+			for q, w in self.ρ.items():
+				ufsa.add_F(PairState(1, q), w)
+			for q, w in fsa.ρ.items():
+				ufsa.add_F(PairState(2, q), w)
+			return ufsa
+
 
 	def concatenate(self, fsa) -> FSA:
 		""" construct the concatenation of the two FSAs """
 
 		# Homework 1: Question 4
-		raise NotImplementedError
+		if not isinstance(fsa, FSA):
+			print("Must input another FSA!")
+			return null
+		if self.R != fsa.R:
+			print("Two semirings must be the same!")
+			return null
+		else:
+			cfsa = FSA(self.R)
+			for i, T in self.δ.items():
+				for a, U in T.items():
+					for j, w in U.items():
+						cfsa.add_arc(PairState(1, i), a, PairState(1, j), w)
+			for q1, w1 in list(self.F):
+				for q2, w2 in list(fsa.I):
+					cfsa.add_arc(PairState(1, q1), ε, PairState(2, q2), w1 * w2)
+			for i, T in fsa.δ.items():
+				for a, U in T.items():
+					for j, w in U.items():
+						cfsa.add_arc(PairState(2, i), a, PairState(2, j), w)
+			for q, w in self.λ.items():
+				cfsa.add_I(PairState(1, q), w)				
+			for q, w in fsa.ρ.items():
+				cfsa.add_F(PairState(2, q), w)	
+		return cfsa
 
 	def closure(self) -> FSA:
 		""" compute the Kleene closure of the FSA """
 
 		# Homework 1: Question 4
-		raise NotImplementedError
+		kfsa = FSA(self.R)
+		for q, w in list(self.I):
+			kfsa.add_arc(PairState(0, q), ε, q, w)
+			kfsa.add_I(PairState(0, q), self.R.one)
+		for i, T in self.δ.items():
+			for a, U in T.items():
+				for j, w in U.items():
+					kfsa.add_arc(i, a, j, w)
+		for q, w in list(self.F):
+			kfsa.add_F(q, w)
+		return kfsa
+		
 
 	def pathsum(self, strategy=Strategy.LEHMANN):
 		if self.acyclic:
