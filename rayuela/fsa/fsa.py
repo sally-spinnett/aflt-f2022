@@ -8,9 +8,7 @@ from itertools import product
 from collections import Counter
 from collections import defaultdict as dd
 
-from sqlalchemy import null
-
-from rayuela.base.semiring import Boolean
+from rayuela.base.semiring import Boolean, String, ProductSemiring
 from rayuela.base.misc import epsilon_filter
 from rayuela.base.symbol import Sym, ε, ε_1, ε_2
 
@@ -394,6 +392,12 @@ class FSA:
 		pathsum = Pathsum(self)
 		return pathsum.pathsum(strategy)
 
+	def edge_marginals(self) -> dict:
+		""" computes the edge marginals μ(q→q') """
+
+		# Homework 2: Question 2
+		raise NotImplementedError
+
 	def intersect(self, fsa):
 		"""
 		on-the-fly weighted intersection
@@ -602,7 +606,11 @@ class FSA:
 		for q in self.Q:
 			to = defaultdict(list)
 			for a, j, w in self.arcs(q):
-				label = f'{str(a)} / {str(w)}'
+				if self.R is ProductSemiring and isinstance(w.score[0], String):
+					# the imporant special case of encoding transducers
+					label = f'{str(a)}:{str(w)}'
+				else:
+					label = f'{str(a)} / {str(w)}'
 				to[j].append(label)
 
 			for dest, values in to.items():
