@@ -396,7 +396,15 @@ class FSA:
 		""" computes the edge marginals μ(q→q') """
 
 		# Homework 2: Question 2
-		raise NotImplementedError
+		μ = dd(lambda : dd(lambda : self.R.zero))
+		ps = Pathsum(self)
+
+		for q1, T in self.δ.items():
+			for _, U in T.items():
+				for q2, w_own in U.items():
+					μ[q1][q2] = w_own * ps.viterbi_bwd()[q2] * ps.viterbi_fwd()[q1]
+		return μ
+
 
 	def intersect(self, fsa):
 		"""
