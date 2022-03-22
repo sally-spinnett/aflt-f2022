@@ -405,7 +405,6 @@ class FSA:
 					μ[q1][q2] = w_own * ps.viterbi_bwd()[q2] * ps.viterbi_fwd()[q1]
 		return μ
 
-
 	def intersect(self, fsa):
 		"""
 		on-the-fly weighted intersection
