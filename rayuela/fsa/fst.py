@@ -1,10 +1,12 @@
 from frozendict import frozendict
+from itertools import product
 
 from rayuela.base.semiring import Boolean
-from rayuela.base.symbol import Sym, ε
+from rayuela.base.misc import epsilon_filter
+from rayuela.base.symbol import Sym, ε, ε_1, ε_2
 
 from rayuela.fsa.fsa import FSA
-from rayuela.fsa.state import State
+from rayuela.fsa.state import State, PairState
 
 
 class FST(FSA):
@@ -85,7 +87,59 @@ class FST(FSA):
 
 	def top_compose(self, fst):
 		# Homework 3 
-		raise NotImplementedError
+		"""
+		on-the-fly weighted top composition
+		"""
+
+		# the two machines need to be in the same semiring
+		assert self.R == fst.R 
+
+		# the output alphabet of self must match the input alphabet of fst
+		assert self.Delta == fst.Sigma
+
+		# add initial states
+		product_fst = FST(R=self.R)
+		for (q1, w1), (q2, w2) in product(self.I, fst.I):
+			product_fst.add_I(PairState(q1, q2), w=w1 * w2)
+		
+		self_initials = {q: w for q, w in self.I}
+		fst_initials = {q: w for q, w in fst.I}
+
+		visited = set([(i1, i2, State('0')) for i1, i2 in product(self_initials, fst_initials)])
+		stack = [(i1, i2, State('0')) for i1, i2 in product(self_initials, fst_initials)]
+
+		self_finals = {q: w for q, w in self.F}
+		fsa_finals = {q: w for q, w in fst.F}
+
+		while stack:
+			q1, q2, qf = stack.pop()
+
+			E1 = [(ab if ab != (ε, ε) else ε_2, j, w) for (ab, j, w) in self.arcs(q1)] + \
+                            [(ε_1, q1, self.R.one)]
+			E2 = [(ab if ab != (ε, ε) else ε_1, j, w) for (ab, j, w) in fst.arcs(q2)] + \
+                            [(ε_2, q2, self.R.one)]
+
+			M = [((ab1, j1, w1), (ab2, j2, w2))
+				 for (ab1, j1, w1), (ab2, j2, w2) in product(E1, E2)
+				 if epsilon_filter(ab1, ab2, qf) != State('⊥')]
+
+			for (ab1, j1, w1), (ab2, j2, w2) in M:
+
+				product_fst.set_arc(
+					PairState(q1, q2), ab1,
+					PairState(j1, j2), w=w1*w2)
+
+				_qf = epsilon_filter(ab1, ab2, qf)
+				if (j1, j2, _qf) not in visited:
+					stack.append((j1, j2, _qf))
+					visited.add((j1, j2, _qf))
+
+			# final state handling
+			if q1 in self_finals and q2 in fsa_finals:
+				product_fst.add_F(
+					PairState(q1, q2), w=self_finals[q1] * fsa_finals[q2])
+
+		return product_fst
 
 	def bottom_compose(self, fst):
 		# Homework 3
