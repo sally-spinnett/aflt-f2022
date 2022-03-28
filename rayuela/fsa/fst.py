@@ -112,7 +112,7 @@ class FST(FSA):
 		fsa_finals = {q: w for q, w in fst.F}
 
 		while stack:
-			q1, q2, qf = stack.pop()
+			q1, q2 = stack.pop()
 
 			E1 = [ab for (ab, j, w) in self.arcs(q1)]
 			E2 = [ab for (ab, j, w) in fst.arcs(q2)]
