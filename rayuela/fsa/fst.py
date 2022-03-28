@@ -105,8 +105,8 @@ class FST(FSA):
 		self_initials = {q: w for q, w in self.I}
 		fst_initials = {q: w for q, w in fst.I}
 
-		visited = set([(i1, i2, State('0')) for i1, i2 in product(self_initials, fst_initials)])
-		stack = [(i1, i2, State('0')) for i1, i2 in product(self_initials, fst_initials)]
+		visited = set([(i1, i2) for i1, i2 in product(self_initials, fst_initials)])
+		stack = [(i1, i2) for i1, i2 in product(self_initials, fst_initials)]
 
 		self_finals = {q: w for q, w in self.F}
 		fsa_finals = {q: w for q, w in fst.F}
@@ -114,14 +114,12 @@ class FST(FSA):
 		while stack:
 			q1, q2, qf = stack.pop()
 
-			E1 = [(ab if ab != (ε, ε) else ε_2, j, w) for (ab, j, w) in self.arcs(q1)] + \
-                            [(ε_1, q1, self.R.one)]
-			E2 = [(ab if ab != (ε, ε) else ε_1, j, w) for (ab, j, w) in fst.arcs(q2)] + \
-                            [(ε_2, q2, self.R.one)]
+			E1 = [ab for (ab, j, w) in self.arcs(q1)]
+			E2 = [ab for (ab, j, w) in fst.arcs(q2)]
 
 			M = [((ab1, j1, w1), (ab2, j2, w2))
 				 for (ab1, j1, w1), (ab2, j2, w2) in product(E1, E2)
-				 if epsilon_filter(ab1, ab2, qf) != State('⊥')]
+				 if ab1[1] == ab2[0]]
 
 			for (ab1, j1, w1), (ab2, j2, w2) in M:
 
@@ -129,10 +127,9 @@ class FST(FSA):
 					PairState(q1, q2), ab1,
 					PairState(j1, j2), w=w1*w2)
 
-				_qf = epsilon_filter(ab1, ab2, qf)
-				if (j1, j2, _qf) not in visited:
-					stack.append((j1, j2, _qf))
-					visited.add((j1, j2, _qf))
+				if (j1, j2) not in visited:
+					stack.append((j1, j2))
+					visited.add((j1, j2))
 
 			# final state handling
 			if q1 in self_finals and q2 in fsa_finals:
