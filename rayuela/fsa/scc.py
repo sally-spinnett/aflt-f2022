@@ -30,4 +30,24 @@ class SCC:
         Returns in the SCCs in topologically sorted order.
         """
 		# Homework 3: Question 4
-        raise NotImplementedError
+        scc = []
+        visited = set([])
+        self_rev = self.fsa.reverse()
+
+        for q in self.fsa.finish():
+            if q in visited:
+                continue
+            current = set([])
+            Q = [q]
+            while Q:
+                q_ = Q.pop()
+                current.add(q_)
+                visited.add(q_)
+                for a, j, w in self_rev.arcs():
+                    if j not in visited:
+                        Q.add(j)
+            scc.append(current)
+        return scc
+
+
+        
