@@ -6,6 +6,7 @@ from rayuela.base.datastructures import PriorityQueue
 from rayuela.base.semiring import Real
 
 from rayuela.fsa.state import State
+from rayuela.fsa.scc import SCC
 
 class Strategy:
 	VITERBI = 1
