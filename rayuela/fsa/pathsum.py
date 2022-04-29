@@ -1,9 +1,10 @@
+from collections import defaultdict
 import numpy as np
 from numpy import linalg as LA
 from frozendict import frozendict
 
 from rayuela.base.datastructures import PriorityQueue
-from rayuela.base.semiring import Real
+from rayuela.base.semiring import Real, Semiring
 
 from rayuela.fsa.state import State
 from rayuela.fsa.scc import SCC
@@ -201,10 +202,11 @@ class Pathsum:
 		
 		return frozendict(α)
 
-	def viterbi_bwd(self):
-		""" The Viterbi algorithm run backwards. """
+	def viterbi_bwd(self) -> "defaultdict[State, Semiring]":
+		""" The Viterbi algorithm run backwards"""
 
 		assert self.fsa.acyclic
+
 
 		# chart
 		𝜷 = self.R.chart()
@@ -218,7 +220,7 @@ class Pathsum:
 			for _, q, w in self.fsa.arcs(p):
 				𝜷[p] += 𝜷[q] * w
 
-		return frozendict(𝜷)
+		return 𝜷
 
 	def dijkstra_early(self):
 		""" Dijkstra's algorithm with early stopping."""
@@ -228,7 +230,32 @@ class Pathsum:
 	def dijkstra_fwd(self, I=None):
 		""" Dijkstra's algorithm without early stopping. """
 
-		raise NotImplementedError
+		assert self.fsa.R.superior
+
+		# initialization
+		α = self.R.chart()
+		agenda = PriorityQueue(R=self.fsa.R)
+		popped = set([]) 
+
+		# base case
+		if I is None:
+			for q, w in self.fsa.I:
+				agenda.push(q, w)
+		else:
+			for q in I:
+				agenda.push(q, self.R.one)
+
+		# main loop
+		while agenda:
+			i, v = agenda.pop()
+			popped.add(i)
+			α[i] += v
+
+			for _, j, w in self.fsa.arcs(i):
+				if j not in popped:
+					agenda.push(j, v * w)
+
+		return α
 
 	def _lehmann(self, zero=True):
 		"""
@@ -277,26 +304,26 @@ class Pathsum:
 	def lehmann_fwd(self): return self.allpairs_fwd(self.lehmann())
 	def lehmann_bwd(self): return self.allpairs_bwd(self.lehmann())
 
-	def decomposed_lehmann_pathsum(self):
+	def decomposed_lehmann_pathsum(self) -> Semiring:
 		# Homework 3: Question 4
 		raise NotImplementedError
 
-	def bellmanford_pathsum(self):
+	def bellmanford_pathsum(self) -> Semiring:
 		pathsum = self.R.zero
 		𝜷 = self.bellmanford_bwd()
 		for q in self.fsa.Q:
 			pathsum += self.fsa.λ[q] * 𝜷[q]
 		return pathsum
 
-	def bellmanford_fwd(self):
+	def bellmanford_fwd(self) -> frozendict[State, Semiring]:
 		raise NotImplementedError
 
 
-	def bellmanford_bwd(self):
+	def bellmanford_bwd(self) -> frozendict[State, Semiring]:
 		raise NotImplementedError
 
 
-	def johnson(self):
+	def johnson(self) -> "defaultdict[(State,State), Semiring]":
 		raise NotImplementedError
 
 	def johnson_pathsum(self): return self.allpairs_pathsum(self.johnson())

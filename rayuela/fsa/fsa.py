@@ -8,7 +8,7 @@ from itertools import product
 from collections import Counter
 from collections import defaultdict as dd
 
-from rayuela.base.semiring import Boolean, String, ProductSemiring
+from rayuela.base.semiring import Boolean, Real, Semiring, String, ProductSemiring
 from rayuela.base.misc import epsilon_filter
 from rayuela.base.symbol import Sym, ε, ε_1, ε_2
 
@@ -55,6 +55,8 @@ class FSA:
 		self.ρ = R.chart()
 
 	def add_state(self, q):
+		if not isinstance(q, State):
+			q = State(q)
 		self.Q.add(q)
 
 	def add_states(self, Q):
@@ -64,8 +66,6 @@ class FSA:
 	def add_arc(self, i, a, j, w=None):
 		if w is None: w = self.R.one
 
-		if not isinstance(i, State): i = State(i)
-		if not isinstance(j, State): j = State(j)
 		if not isinstance(a, Sym): a = Sym(a)
 		if not isinstance(w, self.R): w = self.R(w)
 
@@ -157,6 +157,18 @@ class FSA:
 				F.set_F(q, w)
 
 		return F
+	
+	def push(self):
+		from rayuela.fsa.transformer import Transformer
+		return Transformer.push(self)
+
+	def determinize(self) -> FSA:
+		# Homework 4: Question 4
+		raise NotImplementedError
+
+	def minimize(self, strategy=None) -> FSA:
+		# Homework 5: Question 3
+		raise NotImplementedError
 
 	def dfs(self):
 		""" Depth-first search (Cormen et al. 2019; Section 22.3) """
@@ -231,6 +243,7 @@ class FSA:
 
 	@property
 	def pushed(self) -> bool:
+			
 		# Homework 1: Question 2
 		for i in self.Q:
 			weight = self.R.zero
@@ -369,7 +382,7 @@ class FSA:
 				cfsa.add_F(PairState(2, q), w)	
 		return cfsa
 
-	def closure(self) -> FSA:
+	def kleene_closure(self) -> FSA:
 		""" compute the Kleene closure of the FSA """
 
 		# Homework 1: Question 4
@@ -392,7 +405,7 @@ class FSA:
 		pathsum = Pathsum(self)
 		return pathsum.pathsum(strategy)
 
-	def edge_marginals(self) -> dict:
+	def edge_marginals(self) -> dd[dd[dd[Semiring]]]:
 		""" computes the edge marginals μ(q→q') """
 
 		# Homework 2: Question 2
@@ -404,6 +417,11 @@ class FSA:
 				for q2, w_own in U.items():
 					μ[q1][q2] = w_own * ps.viterbi_bwd()[q2] * ps.viterbi_fwd()[q1]
 		return μ
+
+
+	def coaccessible_intersection(self, fsa) -> FSA:
+		# Homework 2: Question 3
+		raise NotImplementedError
 
 	def intersect(self, fsa):
 		"""
@@ -456,6 +474,12 @@ class FSA:
 					PairState(q1, q2), w=self_finals[q1] * fsa_finals[q2])
 
 		return product_fsa
+
+	def equivalent(self, fsa) -> bool:
+		""" Tests equivalence. """
+		
+		# Homework 5: Question 4
+		raise NotImplementedError
 
 	def tikz(self, max_per_row=4):
 

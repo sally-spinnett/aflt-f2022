@@ -4,7 +4,6 @@ from numpy import linalg as LA
 from collections import deque
 
 from rayuela.base.semiring import Boolean, Real
-from rayuela.fsa.pathsum import Pathsum, Strategy
 from rayuela.fsa.fsa import FSA
 from rayuela.fsa.state import MinimizeState
 
@@ -23,7 +22,7 @@ class SCC:
         for scc in self._kosaraju():
             yield scc
 
-    def _kosaraju(self):
+    def _kosaraju(self) -> "list[frozenset]":
         """
         Kosaraju's algorithm [https://en.wikipedia.org/wiki/Kosaraju%27s_algorithm]
         Runs in O(E + V) time.
