@@ -343,9 +343,10 @@ class FSA:
 					for j, w in U.items():
 						ufsa.add_arc(PairState(2, i), a, PairState(2, j), w)
 			for q, w in self.λ.items():
-				ufsa.add_arc(PairState(0, 0), ε, PairState(1, q), self.R.one)
+				# modified the weight from self.R.one to w
+				ufsa.add_arc(PairState(0, 0), ε, PairState(1, q), w)
 			for q, w in fsa.λ.items():
-				ufsa.add_arc(PairState(0, 0), ε, PairState(2, q), self.R.one)
+				ufsa.add_arc(PairState(0, 0), ε, PairState(2, q), w)
 			for q, w in self.ρ.items():
 				ufsa.add_F(PairState(1, q), w)
 			for q, w in fsa.ρ.items():

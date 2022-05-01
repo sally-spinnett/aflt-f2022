@@ -9,6 +9,9 @@ from rayuela.base.semiring import Real, Semiring
 from rayuela.fsa.state import State
 from rayuela.fsa.scc import SCC
 
+from rayuela.fsa.fsa import FSA
+from collections import defaultdict as dd
+
 class Strategy:
 	VITERBI = 1
 	BELLMANFORD = 2
@@ -316,15 +319,57 @@ class Pathsum:
 		return pathsum
 
 	def bellmanford_fwd(self) -> frozendict[State, Semiring]:
-		raise NotImplementedError
+		# TODO： fix that this type annotation that was commented out
+		# raise NotImplementedError
+		""" 
+		The Bellman-Ford algorithm run forwards.
+		Using Tropical Semiring.
+		"""
+		assert self.R.idempotent
+		# Step 1: Initialize distances from src to all other vertices as INFINITE
+		# dist = dd(lambda : self.R.zero)
+		dist = self.R.chart()
+		for i, weight in self.fsa.I:
+			dist[i] = weight
+		# Step 2: Relax all edges |V| - 1 times, |V| because we added a dummy state
+		for _ in range(len(self.fsa.Q)):
+			# for every arc in the fsa
+			for p in self.fsa.Q:
+				for _, q, w in self.fsa.arcs(p):
+					dist[q] = dist[q] + dist[p]*w
+		# Step 3: Check for negative-weight cycles.
+		for p in self.fsa.Q:
+			for _, q, w in self.fsa.arcs(p):
+				if p in dist and q in dist:
+					assert dist[q] == dist[q] + dist[p]*w
+		return frozendict(dist)
+
 
 
 	def bellmanford_bwd(self) -> frozendict[State, Semiring]:
-		raise NotImplementedError
+		# TODO: fix that I commented this out
+		return Pathsum(self.fsa.reverse()).bellmanford_fwd()
 
 
 	def johnson(self) -> "defaultdict[(State,State), Semiring]":
-		raise NotImplementedError
+		# raise NotImplementedError
+		"""
+		Assignment 5 Question 2
+		"""
+		path = self.R.chart()
+		# Step 1: Bellman-ford to calculate forward weights
+		W = self.forward(Strategy.BELLMANFORD)
+		W = frozendict({k: ~v for k,v in W.items()})
+		# Step 2: weight pushing using forward weights as potential function
+		from rayuela.fsa.transformer import Transformer
+		pfsa = Transformer._push(self.fsa, W)
+		# Step 3: Apply Dijkstra's algo once for every vertex
+		for q in pfsa.Q:
+			for k, v in self.dijkstra_fwd(I=[q]).items:
+				path[(q,k)] = v
+		return path
+
+
 
 	def johnson_pathsum(self): return self.allpairs_pathsum(self.johnson())
 	def johnson_fwd(self): return self.allpairs_fwd(self.johnson())
