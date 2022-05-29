@@ -70,9 +70,7 @@ FSA2.add_F(State(2), w=Real(0.062))
 def test_deterministic():
     with open(f"{hw_path}/deterministic_results.pkl", 'rb') as f:
         deterministic_results = pickle.load(f)
-    with open(f"{hw_path}/deterministic_fsas.pkl", 'rb') as f:
-        dfsas = pickle.load(f)
-    for fsa, result in zip(dfsas, deterministic_results):
+    for fsa, result in zip(fsas, deterministic_results):
         assert fsa.deterministic == result
 
 
@@ -312,7 +310,22 @@ def test_pushed_example_2():
 
 def test_reverse_string():
     # TODO: show that for any string x∈Σ∗ accepted by the original automaton, ←−xis accepted by its reversal
-    pass
+    T1 = FSA(Real)
+
+    T1.add_arc(State(0), Sym('a'), State(1))
+
+    T1.add_arc(State(1), Sym('b'), State(2))
+    T1.add_arc(State(1), Sym('c'), State(3))
+    T1.add_arc(State(2), Sym('a'), State(4))
+    T1.add_arc(State(3), Sym('d'), State(4))
+    T1.add_arc(State(4), Sym('e'), State(4))
+
+    T1.set_I(State(0))
+    T1.set_F(State(4))
+
+    reversed_T1 = T1.reverse()
+
+    assert T1.accept("abae") == reversed_T1.accept("eaba")
 
 def test_reverse_example():
 
@@ -550,28 +563,21 @@ def test_closure():
 
 def test_closure_example():
     KLEENE = FSA(Real)
-
-    KLEENE.add_arc(State(0), Sym('a'), State(0), w=Real(0.043))
-    KLEENE.add_arc(State(0), Sym('a'), State(1), w=Real(0.147))
-    KLEENE.add_arc(State(0), Sym('b'), State(2), w=Real(0.108))
-    KLEENE.add_arc(State(0), ε, State(2), w=Real(1.0))
-
-    KLEENE.add_arc(State(1), Sym('a'), State(0), w=Real(0.125))
-    KLEENE.add_arc(State(1), Sym('a'), State(2), w=Real(0.026))
-    KLEENE.add_arc(State(1), Sym('b'), State(0), w=Real(0.151))
-
-    KLEENE.add_arc(State(2), Sym('a'), State(0), w=Real(0.128))
-    KLEENE.add_arc(State(2), Sym('a'), State(2), w=Real(0.088))
-    KLEENE.add_arc(State(2), Sym('b'), State(1), w=Real(0.024))
-    KLEENE.add_arc(State(2), ε, State(5), w=Real(0.156))
-    KLEENE.add_arc(State(2), ε, State(0), w=Real(1.0))
-
-    KLEENE.add_arc(State(4), ε, State(0), w=Real(0.078))
-    KLEENE.add_arc(State(5), ε, State(4), w=Real(1.0))
-
-
-    KLEENE.set_I(State(4), w=Real(1.0))
-    KLEENE.add_F(State(5), w=Real(1.0))
+    KLEENE.add_arc(State(0), 'a', State(0), Real(0.043))
+    KLEENE.add_arc(State(0), 'a', State(1), Real(0.147))
+    KLEENE.add_arc(State(0), 'b', State(2), Real(0.108))
+    KLEENE.add_arc(State(1), 'a', State(0), Real(0.125))
+    KLEENE.add_arc(State(1), 'a', State(2), Real(0.026))
+    KLEENE.add_arc(State(1), 'b', State(0), Real(0.151))
+    KLEENE.add_arc(State(2), 'a', State(0), Real(0.128))
+    KLEENE.add_arc(State(2), 'a', State(2), Real(0.088))
+    KLEENE.add_arc(State(2), 'b', State(1), Real(0.024))
+    KLEENE.add_arc(State(2), 'ε', State("kleene_closure_final_0"), Real(0.156))
+    KLEENE.add_arc(State(2), 'ε', State(0), Real(0.012168))
+    KLEENE.add_F(State("kleene_closure_final_0"), Real(1.0))
+    KLEENE.add_arc(State("kleene_closure_start_0"), 'ε', State(0), Real(0.078))
+    KLEENE.add_arc(State("kleene_closure_start_0"), 'ε', State("kleene_closure_final_0"), Real(1.0))
+    KLEENE.set_I(State("kleene_closure_start_0"), Real(1.0))
 
     kleene = FSA1.kleene_closure()
     assert compare_fsas(KLEENE,kleene)
